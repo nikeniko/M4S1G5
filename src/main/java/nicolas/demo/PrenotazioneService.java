@@ -27,16 +27,24 @@ public class PrenotazioneService {
 
     @Transactional
     public Prenotazione prenotaPostazione(String username, Long postazioneId, LocalDate data) {
-        Utente utente = utenteRepository.findById(username).orElseThrow(() -> new IllegalArgumentException("Utente non trovato"));
+        Utente utente = utenteRepository.findById(username)
+                .orElseThrow(() -> new IllegalArgumentException("Utente non trovato"));
+
         List<Prenotazione> prenotazioniUtente = prenotazioneRepository.findByUtenteAndDataPrenotazione(utente, data);
         if (!prenotazioniUtente.isEmpty()) {
             throw new IllegalArgumentException("L'utente ha già una prenotazione per questa data.");
         }
 
-        Postazione postazione = postazioneRepository.findById(postazioneId).orElseThrow(() -> new IllegalArgumentException("Postazione non trovata"));
+        Postazione postazione = postazioneRepository.findById(postazioneId)
+                .orElseThrow(() -> new IllegalArgumentException("Postazione non trovata"));
+
         List<Prenotazione> prenotazioniPostazione = prenotazioneRepository.findByPostazioneAndDataPrenotazione(postazione, data);
         if (!prenotazioniPostazione.isEmpty()) {
             throw new IllegalArgumentException("La postazione è già prenotata per questa data.");
+        }
+
+        if (postazione.getOccupati() >= postazione.getPosti()) {
+            throw new IllegalArgumentException("La postazione non ha posti disponibili.");
         }
 
         Prenotazione prenotazione = new Prenotazione();
@@ -44,7 +52,9 @@ public class PrenotazioneService {
         prenotazione.setPostazione(postazione);
         prenotazione.setDataPrenotazione(data);
 
+        postazione.setOccupati(postazione.getOccupati() + 1);
+        postazioneRepository.save(postazione);
+
         return prenotazioneRepository.save(prenotazione);
     }
 }
-
